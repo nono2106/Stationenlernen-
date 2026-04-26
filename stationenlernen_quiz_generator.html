@@ -1,0 +1,471 @@
+
+<h2 class="sr-only">Stationenlernen Quiz-Generator mit Editor, Mehrfachauswahl und QR-Codes</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,system-ui);color:var(--color-text-primary)}
+.app-tabs{display:flex;border-bottom:1px solid var(--color-border-tertiary);background:var(--color-background-secondary);padding:0 1rem;gap:2px}
+.app-tab{padding:11px 18px;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--color-text-secondary);transition:all .15s;white-space:nowrap}
+.app-tab.active{color:var(--color-text-primary);border-bottom-color:#185FA5}
+.app-tab:hover:not(.active){color:var(--color-text-primary);background:var(--color-background-primary)}
+.view{display:none;padding:1.25rem}
+.view.active{display:block}
+
+.section-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:8px}
+
+/* ── Editor ── */
+.editor-top{display:flex;gap:10px;margin-bottom:1.25rem;align-items:flex-end;flex-wrap:wrap}
+.title-field{flex:1;min-width:180px}
+.title-field label{font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px}
+.title-field input{width:100%;font-size:15px;font-weight:500;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 12px;background:var(--color-background-secondary);color:var(--color-text-primary);font-family:inherit}
+.title-field input:focus{outline:none;border-color:#185FA5;background:var(--color-background-primary)}
+
+.stations-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:1rem}
+.station-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem;cursor:pointer;transition:border-color .15s}
+.station-card:hover{border-color:var(--color-border-secondary)}
+.station-card.selected{border:2px solid #185FA5}
+.station-card-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.station-dot{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0}
+.station-name{font-size:14px;font-weight:500;color:var(--color-text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.station-meta{font-size:12px;color:var(--color-text-secondary)}
+.station-badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;margin-top:4px}
+
+.add-station-btn{background:transparent;border:0.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1rem;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);font-family:inherit;transition:all .15s;min-height:90px}
+.add-station-btn:hover{border-color:#185FA5;color:#185FA5;background:#E6F1FB}
+
+.station-editor{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem}
+.station-editor-top{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.back-btn{padding:5px 12px;background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;color:var(--color-text-secondary);font-family:inherit}
+.back-btn:hover{background:var(--color-background-secondary)}
+.se-title-row{display:flex;gap:10px;margin-bottom:1rem;align-items:center}
+.se-title-row input{flex:1;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 11px;font-size:14px;font-weight:500;background:var(--color-background-secondary);color:var(--color-text-primary);font-family:inherit}
+.se-title-row input:focus{outline:none;border-color:#185FA5;background:var(--color-background-primary)}
+.color-picks{display:flex;gap:6px}
+.color-pick{width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.color-pick.active{border-color:var(--color-text-primary)}
+
+.q-list{display:flex;flex-direction:column;gap:8px;margin-bottom:.75rem}
+.q-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden}
+.q-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer}
+.q-idx{width:22px;height:22px;border-radius:50%;background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.q-preview{flex:1;font-size:13px;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-preview.empty{color:var(--color-text-tertiary);font-style:italic}
+.q-multi-badge{font-size:10px;padding:1px 6px;border-radius:10px;background:#FAEEDA;color:#854F0B;flex-shrink:0}
+.q-del{width:22px;height:22px;border:none;background:transparent;cursor:pointer;border-radius:4px;color:var(--color-text-tertiary);font-size:13px;display:flex;align-items:center;justify-content:center}
+.q-del:hover{background:#FCEBEB;color:#A32D2D}
+.q-chev{font-size:10px;color:var(--color-text-tertiary);transition:transform .2s}
+.q-card.open .q-chev{transform:rotate(180deg)}
+.q-body{display:none;padding:0 12px 12px;border-top:0.5px solid var(--color-border-tertiary)}
+.q-card.open .q-body{display:block}
+.fl{font-size:11px;color:var(--color-text-secondary);margin:10px 0 5px;font-weight:500;text-transform:uppercase;letter-spacing:.4px}
+.q-ta{width:100%;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 10px;font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:inherit;resize:vertical;min-height:52px}
+.q-ta:focus{outline:none;border-color:#185FA5}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.ans-cb{width:15px;height:15px;accent-color:#3B6D11;cursor:pointer;flex-shrink:0}
+.ans-in{flex:1;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 10px;font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:inherit}
+.ans-in:focus{outline:none;border-color:#185FA5}
+.ans-row.iscorrect .ans-in{border-color:#3B6D11;background:#EAF3DE}
+.ans-del{width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:var(--color-text-tertiary);font-size:13px;border-radius:3px;display:flex;align-items:center;justify-content:center}
+.ans-del:hover{background:#FCEBEB;color:#A32D2D}
+.add-ans{width:100%;padding:5px;background:transparent;border:0.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:12px;cursor:pointer;color:var(--color-text-secondary);font-family:inherit;text-align:left;transition:all .15s}
+.add-ans:hover{border-color:#185FA5;color:#185FA5;background:#E6F1FB}
+.multi-hint{font-size:11px;color:#854F0B;background:#FAEEDA;padding:4px 8px;border-radius:4px;margin-top:6px}
+
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1rem}
+.btn-p{padding:8px 18px;background:#185FA5;color:#fff;border:none;border-radius:var(--border-radius-md);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-p:hover{background:#0C447C}
+.btn-s{padding:8px 18px;background:var(--color-background-secondary);color:var(--color-text-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;font-family:inherit}
+.btn-s:hover{background:var(--color-background-tertiary)}
+.btn-danger{padding:8px 18px;background:#FCEBEB;color:#A32D2D;border:0.5px solid #F09595;border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;font-family:inherit}
+.btn-danger:hover{background:#F7C1C1}
+
+/* ── QR view ── */
+.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:1rem}
+.qr-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;display:flex;flex-direction:column;align-items:center;gap:.75rem}
+.qr-card-title{font-size:14px;font-weight:500;color:var(--color-text-primary);text-align:center}
+.qr-card-meta{font-size:12px;color:var(--color-text-secondary);text-align:center}
+.qr-wrap{width:140px;height:140px;background:#fff;display:flex;align-items:center;justify-content:center;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden}
+.qr-open{padding:6px 14px;font-size:12px;background:#185FA5;color:#fff;border:none;border-radius:var(--border-radius-md);cursor:pointer;font-family:inherit;width:100%}
+.qr-open:hover{background:#0C447C}
+.qr-notice{background:#E6F1FB;border:0.5px solid #85B7EB;border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;color:#0C447C;margin-bottom:1rem}
+
+/* ── Preview ── */
+.preview-notice{background:#E6F1FB;border:0.5px solid #85B7EB;border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;color:#0C447C;margin-bottom:1rem}
+.preview-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+.ptab{padding:6px 14px;border:0.5px solid var(--color-border-secondary);border-radius:20px;font-size:12px;cursor:pointer;background:transparent;font-family:inherit;color:var(--color-text-secondary);transition:all .15s}
+.ptab.active{background:#185FA5;color:#fff;border-color:#185FA5}
+.pstation{display:none}
+.pstation.active{display:block}
+.pq{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:10px}
+.pq-text{font-size:15px;font-weight:500;margin-bottom:4px}
+.pq-hint{font-size:12px;color:var(--color-text-tertiary);margin-bottom:10px}
+.popt{display:flex;align-items:center;gap:10px;padding:9px 13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);margin-bottom:7px;cursor:pointer;font-size:14px;color:var(--color-text-primary);transition:background .15s}
+.popt:hover:not(.locked){background:#E6F1FB;border-color:#85B7EB}
+.popt.sel{background:#E6F1FB;border-color:#185FA5}
+.popt.ok{background:#EAF3DE;border-color:#3B6D11}
+.popt.wrong{background:#FCEBEB;border-color:#A32D2D}
+.popt.missed{background:#FAEEDA;border-color:#854F0B}
+.popt-shape{width:20px;height:20px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0;color:var(--color-text-secondary)}
+.psub{padding:7px 16px;background:#185FA5;color:#fff;border:none;border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;font-family:inherit;margin-top:8px}
+.psub:disabled{opacity:.4;cursor:not-allowed}
+.pexp{margin-top:8px;padding:8px 12px;background:#EAF3DE;border-radius:var(--border-radius-md);font-size:12px;color:#3B6D11;display:none}
+</style>
+
+<div>
+  <div class="app-tabs">
+    <div class="app-tab active" onclick="switchTab('editor')">Editor</div>
+    <div class="app-tab" onclick="switchTab('qr')">QR-Codes</div>
+    <div class="app-tab" onclick="switchTab('preview')">Vorschau</div>
+  </div>
+
+  <div id="view-editor" class="view active">
+    <div id="editor-main"></div>
+  </div>
+  <div id="view-qr" class="view">
+    <div id="qr-main"></div>
+  </div>
+  <div id="view-preview" class="view">
+    <div id="preview-main"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const COLORS=[
+  {bg:'#E6F1FB',text:'#0C447C',dot:'#378ADD'},
+  {bg:'#EAF3DE',text:'#27500A',dot:'#639922'},
+  {bg:'#FAEEDA',text:'#633806',dot:'#EF9F27'},
+  {bg:'#FBEAF0',text:'#72243E',dot:'#D4537E'},
+  {bg:'#E1F5EE',text:'#085041',dot:'#1D9E75'},
+  {bg:'#EEEDFE',text:'#3C3489',dot:'#7F77DD'},
+];
+
+let quizTitle='Mein Stationenlernen';
+let stations=[
+  {id:1,name:'Station 1 – Grundlagen',colorIdx:0,questions:[
+    {id:1,text:'Was sind objektorientierte Grundprinzipien?',answers:[{t:'Kapselung',c:true},{t:'Selektion',c:false},{t:'Vererbung',c:true},{t:'Polymorphismus',c:true}],exp:'Kapselung, Vererbung und Polymorphismus sind die drei Säulen der OOP.'},
+    {id:2,text:'Was ist eine Klasse in der OOP?',answers:[{t:'Ein Bauplan für Objekte',c:true},{t:'Eine Schleife',c:false},{t:'Eine Funktion ohne Rückgabe',c:false}],exp:'Eine Klasse definiert Eigenschaften und Methoden – sie ist der Bauplan.'},
+  ]},
+  {id:2,name:'Station 2 – Netzwerke',colorIdx:1,questions:[
+    {id:1,text:'Welche Protokolle gehören zur Transportschicht?',answers:[{t:'TCP',c:true},{t:'UDP',c:true},{t:'HTTP',c:false},{t:'IP',c:false}],exp:'TCP und UDP arbeiten auf der Transportschicht des OSI-Modells.'},
+  ]},
+  {id:3,name:'Station 3 – Datenbanken',colorIdx:2,questions:[
+    {id:1,text:'Was ist ein Primärschlüssel?',answers:[{t:'Ein eindeutiger Bezeichner pro Datensatz',c:true},{t:'Der erste Spaltenwert',c:false},{t:'Ein Fremdschlüssel',c:false}],exp:'Der Primärschlüssel identifiziert jeden Datensatz eindeutig.'},
+  ]},
+];
+let nextSId=4, nextQId=10;
+let editingStation=null;
+let activeTab='editor';
+
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.app-tab').forEach((t,i)=>t.classList.toggle('active',['editor','qr','preview'][i]===tab));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  if(tab==='editor') renderEditor();
+  if(tab==='qr') renderQR();
+  if(tab==='preview') renderPreview();
+}
+
+/* ───── EDITOR ───── */
+function renderEditor(){
+  const el=document.getElementById('editor-main');
+  if(editingStation!==null){renderStationEditor(el);return}
+  const c=COLORS;
+  el.innerHTML=`
+  <div class="editor-top">
+    <div class="title-field">
+      <label>Titel des Stationenlernens</label>
+      <input id="main-title" value="${quizTitle}" oninput="quizTitle=this.value">
+    </div>
+    <button class="btn-p" onclick="switchTab('qr')">QR-Codes generieren</button>
+  </div>
+  <div class="section-label">Stationen (${stations.length})</div>
+  <div class="stations-grid">
+    ${stations.map(s=>{
+      const col=COLORS[s.colorIdx];
+      const multi=s.questions.filter(q=>q.answers.filter(a=>a.c).length>1).length;
+      return`<div class="station-card" onclick="openStation(${s.id})">
+        <div class="station-card-top">
+          <div class="station-dot" style="background:${col.bg};color:${col.text}">${s.id}</div>
+          <div class="station-name">${s.name}</div>
+        </div>
+        <div class="station-meta">${s.questions.length} Frage${s.questions.length!==1?'n':''}</div>
+        ${multi?`<span class="station-badge" style="background:#FAEEDA;color:#854F0B">${multi}× Mehrfachauswahl</span>`:''}
+      </div>`;
+    }).join('')}
+    <button class="add-station-btn" onclick="addStation()">+ Station hinzufügen</button>
+  </div>`;
+}
+
+function addStation(){
+  const idx=stations.length%COLORS.length;
+  stations.push({id:nextSId++,name:'Station '+(stations.length+1),colorIdx:idx,questions:[]});
+  editingStation=stations[stations.length-1].id;
+  renderEditor();
+}
+
+function openStation(id){editingStation=id;renderEditor()}
+
+function renderStationEditor(el){
+  const s=stations.find(x=>x.id===editingStation);
+  if(!s){editingStation=null;renderEditor();return}
+  const openQs=new Set(window._openQs||[]);
+  el.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+    <button class="back-btn" onclick="editingStation=null;renderEditor()">← Alle Stationen</button>
+    <span style="font-size:13px;color:var(--color-text-secondary)">Station bearbeiten</span>
+    <button class="btn-danger" style="margin-left:auto" onclick="deleteStation(${s.id})">Station löschen</button>
+  </div>
+  <div class="station-editor">
+    <div class="se-title-row">
+      <input id="s-name" value="${s.name}" placeholder="Name der Station" oninput="s_updateName(${s.id},this.value)" style="font-size:14px;font-weight:500">
+      <div class="color-picks">
+        ${COLORS.map((c,i)=>`<div class="color-pick${s.colorIdx===i?' active':''}" style="background:${c.dot}" onclick="s_setColor(${s.id},${i})"></div>`).join('')}
+      </div>
+    </div>
+    <div class="section-label">Fragen</div>
+    <div class="q-list" id="q-list">
+      ${s.questions.map((q,qi)=>{
+        const multi=q.answers.filter(a=>a.c).length>1;
+        const isOpen=openQs.has(q.id);
+        return`<div class="q-card${isOpen?' open':''}" id="qcard-${q.id}">
+          <div class="q-head" onclick="toggleQ(${q.id})">
+            <div class="q-idx">${qi+1}</div>
+            <div class="q-preview${q.text?'':' empty'}">${q.text||'Frage eingeben…'}</div>
+            ${multi?`<span class="q-multi-badge">Mehrfach</span>`:''}
+            <button class="q-del" onclick="event.stopPropagation();deleteQ(${s.id},${q.id})">✕</button>
+            <span class="q-chev">▼</span>
+          </div>
+          <div class="q-body">
+            <div class="fl">Frage</div>
+            <textarea class="q-ta" oninput="q_setText(${s.id},${q.id},this.value)">${q.text}</textarea>
+            <div class="fl">Antworten <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-text-tertiary)">– Checkbox = richtig (Mehrere möglich)</span></div>
+            ${q.answers.map((a,ai)=>`
+            <div class="ans-row${a.c?' iscorrect':''}">
+              <input type="checkbox" class="ans-cb" ${a.c?'checked':''} onchange="q_toggleCorrect(${s.id},${q.id},${ai},this.checked)">
+              <input class="ans-in" type="text" value="${a.t}" placeholder="Antwort ${String.fromCharCode(65+ai)}…" oninput="q_setAnsText(${s.id},${q.id},${ai},this.value)">
+              <button class="ans-del" onclick="q_delAns(${s.id},${q.id},${ai})">×</button>
+            </div>`).join('')}
+            ${q.answers.length<6?`<button class="add-ans" onclick="q_addAns(${s.id},${q.id})">+ Antwort hinzufügen</button>`:''}
+            ${multi?`<div class="multi-hint">Mehrfachauswahl erkannt – Studierende müssen alle richtigen Antworten wählen.</div>`:''}
+            <div class="fl">Erklärung (optional)</div>
+            <textarea class="q-ta" style="min-height:40px" placeholder="Erklärung zur richtigen Antwort…" oninput="q_setExp(${s.id},${q.id},this.value)">${q.exp||''}</textarea>
+          </div>
+        </div>`;}).join('')}
+    </div>
+    <button class="btn-s" onclick="addQ(${s.id})">+ Frage hinzufügen</button>
+  </div>`;
+}
+
+function s_updateName(id,v){const s=stations.find(x=>x.id===id);s.name=v}
+function s_setColor(id,idx){const s=stations.find(x=>x.id===id);s.colorIdx=idx;renderEditor()}
+function deleteStation(id){if(!confirm('Station wirklich löschen?'))return;stations=stations.filter(x=>x.id!==id);editingStation=null;renderEditor()}
+
+function toggleQ(qid){
+  window._openQs=window._openQs||[];
+  const i=window._openQs.indexOf(qid);
+  if(i>=0)window._openQs.splice(i,1);else window._openQs.push(qid);
+  const card=document.getElementById('qcard-'+qid);
+  if(card)card.classList.toggle('open');
+}
+
+function addQ(sid){
+  const s=stations.find(x=>x.id===sid);
+  const qid=nextQId++;
+  s.questions.push({id:qid,text:'',answers:[{t:'',c:false},{t:'',c:false}],exp:''});
+  window._openQs=window._openQs||[];
+  window._openQs.push(qid);
+  renderEditor();
+}
+function deleteQ(sid,qid){const s=stations.find(x=>x.id===sid);s.questions=s.questions.filter(q=>q.id!==qid);renderEditor()}
+function q_setText(sid,qid,v){const q=stations.find(x=>x.id===sid)?.questions.find(q=>q.id===qid);if(q)q.text=v}
+function q_toggleCorrect(sid,qid,ai,v){const q=stations.find(x=>x.id===sid)?.questions.find(q=>q.id===qid);if(q)q.answers[ai].c=v;renderEditor()}
+function q_setAnsText(sid,qid,ai,v){const q=stations.find(x=>x.id===sid)?.questions.find(q=>q.id===qid);if(q)q.answers[ai].t=v}
+function q_delAns(sid,qid,ai){const q=stations.find(x=>x.id===sid)?.questions.find(q=>q.id===qid);if(q&&q.answers.length>2){q.answers.splice(ai,1);renderEditor()}}
+function q_addAns(sid,qid){const q=stations.find(x=>x.id===sid)?.questions.find(q=>q.id===qid);if(q&&q.answers.length<6){q.answers.push({t:'',c:false});renderEditor()}}
+function q_setExp(sid,qid,v){const q=stations.find(x=>x.id===sid)?.questions.find(q=>q.id===qid);if(q)q.exp=v}
+
+/* ───── QR ───── */
+let _qrInstances={};
+function renderQR(){
+  const el=document.getElementById('qr-main');
+  el.innerHTML=`
+  <div class="qr-notice">Jede Station hat einen eigenen QR-Code. Studierende scannen den Code an ihrer Station und bearbeiten das Quiz direkt im Browser.</div>
+  <div class="section-label">${quizTitle} – ${stations.length} Stationen</div>
+  <div class="qr-grid" id="qr-grid"></div>
+  <button class="btn-p" onclick="openAllStudentViews()">Alle Stationen öffnen (zum Testen)</button>`;
+  setTimeout(()=>{
+    const grid=document.getElementById('qr-grid');
+    if(!grid)return;
+    stations.forEach(s=>{
+      const col=COLORS[s.colorIdx];
+      const card=document.createElement('div');
+      card.className='qr-card';
+      card.innerHTML=`
+        <div style="width:32px;height:32px;border-radius:8px;background:${col.bg};color:${col.text};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500">${s.id}</div>
+        <div class="qr-card-title">${s.name}</div>
+        <div class="qr-card-meta">${s.questions.length} Frage${s.questions.length!==1?'n':''}</div>
+        <div class="qr-wrap" id="qrw-${s.id}"></div>
+        <button class="qr-open" onclick="openStudentView(${s.id})">Station öffnen</button>`;
+      grid.appendChild(card);
+      const wrap=card.querySelector('#qrw-'+s.id);
+      const url=buildStationURL(s);
+      window['_url_'+s.id]=url;
+      try{new QRCode(wrap,{text:url,width:136,height:136,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.L})}catch(e){}
+    });
+  },100);
+}
+
+function buildStationURL(s){
+  const payload={quizTitle,station:{id:s.id,name:s.name,colorIdx:s.colorIdx,questions:s.questions}};
+  const enc=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  return URL.createObjectURL(new Blob([studentHTML(enc)],{type:'text/html'}));
+}
+
+function openStudentView(sid){const url=window['_url_'+sid]||buildStationURL(stations.find(x=>x.id===sid));window.open(url,'_blank')}
+function openAllStudentViews(){stations.forEach(s=>openStudentView(s.id))}
+
+/* ───── PREVIEW ───── */
+let previewStation=0;
+let previewSelections={};
+function renderPreview(){
+  const el=document.getElementById('preview-main');
+  if(previewStation===0&&stations.length>0)previewStation=stations[0].id;
+  el.innerHTML=`
+  <div class="preview-notice">So sehen Studierende die Station im Browser. Antworten anklicken und auswerten.</div>
+  <div class="preview-tabs">
+    ${stations.map(s=>`<button class="ptab${s.id===previewStation?' active':''}" onclick="previewStation=${s.id};renderPreview()">${s.name}</button>`).join('')}
+  </div>
+  ${stations.map(s=>{
+    const col=COLORS[s.colorIdx];
+    return`<div class="pstation${s.id===previewStation?' active':''}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+        <div style="width:36px;height:36px;border-radius:10px;background:${col.bg};color:${col.text};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500">${s.id}</div>
+        <div>
+          <div style="font-size:16px;font-weight:500">${s.name}</div>
+          <div style="font-size:12px;color:var(--color-text-secondary)">${quizTitle}</div>
+        </div>
+      </div>
+      ${s.questions.map((q,qi)=>{
+        const multi=q.answers.filter(a=>a.c).length>1;
+        const key=s.id+'-'+q.id;
+        const sel=previewSelections[key]||[];
+        const done=window._pdone&&window._pdone[key];
+        return`<div class="pq" id="ppq-${s.id}-${q.id}">
+          <div class="pq-text">${qi+1}. ${q.text||'(Keine Frage)'}</div>
+          <div class="pq-hint">${multi?'Mehrere Antworten möglich':'Eine Antwort auswählen'}</div>
+          ${q.answers.map((a,ai)=>{
+            let cls='popt';
+            if(done){
+              const wasSel=sel.includes(ai);
+              if(a.c&&wasSel)cls+=' ok';
+              else if(!a.c&&wasSel)cls+=' wrong';
+              else if(a.c&&!wasSel)cls+=' missed';
+              cls+=' locked';
+            } else if(sel.includes(ai))cls+=' sel';
+            return`<div class="${cls}" onclick="${done?'':'pToggle('+s.id+','+q.id+','+ai+','+multi+')'}">
+              <div class="popt-shape">${String.fromCharCode(65+ai)}</div>
+              <span>${a.t||'(Leer)'}</span>
+            </div>`;
+          }).join('')}
+          ${done&&q.exp?`<div class="pexp" id="pexp-${s.id}-${q.id}" style="display:block">${q.exp}</div>`:''}
+          ${!done?`<button class="psub" onclick="pSubmit(${s.id},${q.id})" ${sel.length===0?'disabled':''}>Auswerten</button>`:`<div style="font-size:12px;color:var(--color-text-success);margin-top:8px">Bewertet</div>`}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('')}`;
+}
+
+function pToggle(sid,qid,ai,multi){
+  const key=sid+'-'+qid;
+  previewSelections[key]=previewSelections[key]||[];
+  const sel=previewSelections[key];
+  const i=sel.indexOf(ai);
+  if(!multi){previewSelections[key]=[ai]}
+  else if(i>=0)sel.splice(i,1);
+  else sel.push(ai);
+  renderPreview();
+}
+function pSubmit(sid,qid){
+  window._pdone=window._pdone||{};
+  window._pdone[sid+'-'+qid]=true;
+  renderPreview();
+}
+
+/* ───── STUDENT HTML ───── */
+function studentHTML(enc){
+return`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Station</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#f4f6f9;min-height:100vh;padding:16px}
+.header{max-width:600px;margin:0 auto 20px;display:flex;align-items:center;gap:12px}
+.station-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0}
+.station-title{font-size:18px;font-weight:600;color:#111}
+.quiz-sub{font-size:13px;color:#666;margin-top:2px}
+.progress-bar{max-width:600px;margin:0 auto 16px;height:5px;background:#e0e0e0;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.card{background:#fff;border-radius:12px;padding:18px;margin:0 auto 14px;max-width:600px;border:1px solid #e8e8e8}
+.q-text{font-size:16px;font-weight:600;color:#111;margin-bottom:4px;line-height:1.4}
+.q-hint{font-size:12px;color:#888;margin-bottom:12px}
+.opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid #e0e0e0;border-radius:8px;margin-bottom:8px;cursor:pointer;font-size:14px;color:#111;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.opt:hover:not(.locked){background:#f0f5ff;border-color:#4a90d9}
+.opt.sel{background:#EBF3FF;border-color:#2171c7}
+.opt.ok{background:#EAF3DE;border-color:#3B6D11;color:#27500A}
+.opt.wrong{background:#FCEBEB;border-color:#A32D2D;color:#791F1F}
+.opt.missed{background:#FAEEDA;border-color:#854F0B;color:#633806}
+.letter{width:26px;height:26px;border-radius:6px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;color:#555}
+.sub-btn{width:100%;padding:11px;background:#2171c7;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;margin-top:10px;font-family:inherit}
+.sub-btn:disabled{opacity:.4;cursor:not-allowed}
+.exp{margin-top:10px;padding:10px 12px;background:#EAF3DE;border-radius:8px;font-size:13px;color:#3B6D11;display:none}
+.result-wrap{max-width:600px;margin:20px auto;background:#fff;border-radius:12px;padding:28px;text-align:center;border:1px solid #e8e8e8}
+.result-score{font-size:52px;font-weight:700;color:#2171c7;margin:8px 0}
+.result-label{color:#666;font-size:15px;margin-bottom:18px}
+.restart{padding:11px 28px;background:#2171c7;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+</style></head><body>
+<script>
+const enc="${enc}";
+const data=JSON.parse(decodeURIComponent(escape(atob(enc))));
+const s=data.station;
+const COLORS=[{bg:'#E6F1FB',text:'#0C447C'},{bg:'#EAF3DE',text:'#27500A'},{bg:'#FAEEDA',text:'#633806'},{bg:'#FBEAF0',text:'#72243E'},{bg:'#E1F5EE',text:'#085041'},{bg:'#EEEDFE',text:'#3C3489'}];
+const col=COLORS[s.colorIdx]||COLORS[0];
+let answered=0,score=0;
+const sel={},done={};
+document.write('<div class="header"><div class="station-icon" style="background:'+col.bg+';color:'+col.text+'">'+s.id+'</div><div><div class="station-title">'+s.name+'</div><div class="quiz-sub">'+data.quizTitle+'</div></div></div>');
+document.write('<div class="progress-bar"><div class="progress-fill" id="pf" style="width:0%;background:'+col.text+'"></div></div>');
+s.questions.forEach(function(q,qi){
+  const multi=q.answers.filter(function(a){return a.c}).length>1;
+  document.write('<div class="card" id="c'+qi+'"><div class="q-text">'+(qi+1)+'. '+q.text+'</div><div class="q-hint">'+(multi?'Mehrere Antworten möglich — alle richtigen wählen':'Eine Antwort auswählen')+'</div>');
+  q.answers.forEach(function(a,ai){document.write('<div class="opt" id="o'+qi+'_'+ai+'" onclick="pick('+qi+','+ai+','+multi+')"><div class="letter">'+String.fromCharCode(65+ai)+'</div><span>'+a.text+'</span></div>')});
+  document.write('<div class="exp" id="exp'+qi+'">'+( q.exp||'')+'</div>');
+  document.write('<button class="sub-btn" id="sub'+qi+'" onclick="submit('+qi+')" disabled>Auswerten</button></div>');
+});
+document.write('<div class="result-wrap" id="result" style="display:none"><div class="result-score" id="rs"></div><div class="result-label" id="rl"></div><button class="restart" onclick="location.reload()">Nochmal</button></div>');
+function pick(qi,ai,multi){
+  if(done[qi])return;
+  sel[qi]=sel[qi]||[];
+  if(!multi){sel[qi]=[ai]}else{var i=sel[qi].indexOf(ai);if(i>=0)sel[qi].splice(i,1);else sel[qi].push(ai);}
+  s.questions[qi].answers.forEach(function(_,i2){var el=document.getElementById('o'+qi+'_'+i2);el.className='opt'+(sel[qi].indexOf(i2)>=0?' sel':'')});
+  document.getElementById('sub'+qi).disabled=sel[qi].length===0;
+}
+function submit(qi){
+  if(done[qi])return;done[qi]=true;
+  var q=s.questions[qi];var correct=q.answers.filter(function(a){return a.c}).map(function(_,i){return i;});
+  var userSel=sel[qi]||[];
+  var allRight=correct.length===userSel.length&&correct.every(function(i){return userSel.indexOf(i)>=0});
+  if(allRight)score++;
+  answered++;
+  q.answers.forEach(function(a,ai){
+    var el=document.getElementById('o'+qi+'_'+ai);
+    el.className='opt locked';
+    if(a.c&&userSel.indexOf(ai)>=0)el.className='opt ok locked';
+    else if(!a.c&&userSel.indexOf(ai)>=0)el.className='opt wrong locked';
+    else if(a.c&&userSel.indexOf(ai)<0)el.className='opt missed locked';
+  });
+  if(q.exp){var e=document.getElementById('exp'+qi);e.style.display='block';}
+  document.getElementById('sub'+qi).disabled=true;
+  document.getElementById('sub'+qi).textContent='Bewertet';
+  document.getElementById('pf').style.width=Math.round(answered/s.questions.length*100)+'%';
+  if(answered===s.questions.length){setTimeout(function(){document.getElementById('result').style.display='block';document.getElementById('rs').textContent=score+' / '+s.questions.length;var p=Math.round(score/s.questions.length*100);document.getElementById('rl').textContent=p+'% korrekt beantwortet';},400);}
+}
+<\/script></body></html>`;}
+
+renderEditor();
+</script>
